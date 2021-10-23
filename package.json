@@ -1,0 +1,15 @@
+{
+  "type": "module",
+  "name": "npm-package-repro",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Connor Clark",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^16.11.4",
+    "typescript": "^4.4.4"
+  }
+}
