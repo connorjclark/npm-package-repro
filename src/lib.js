@@ -29,7 +29,7 @@ function init() {
 async function getPackageDetails(packageIdentifier) {
   const output = await execFilePromise('npm', ['view', '--json', packageIdentifier], { encoding: 'utf-8' })
     .catch(r => /** @type {{stdout: string, stderr: string}} */(r));
-  if (output.stderr.includes('is not in this registry')) {
+  if (output.stderr.includes('is not in this registry') || !output.stdout) {
     throw new Error(`${packageIdentifier} is not in the npm registry`);
   }
 
@@ -331,7 +331,7 @@ async function getPackageDependencies(packageIdentifier) {
     `npx --yes npm-remote-ls ${packageIdentifier} -d false -o false`,
   ], { encoding: 'utf-8' })
     .catch(r => /** @type {{stdout: string, stderr: string}} */(r));
-  if (output.stdout.includes('could not load')) {
+  if (!output.stdout.startsWith('└─')) {
     throw new Error(output.stdout);
   }
   if (output.stderr) {

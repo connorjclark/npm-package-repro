@@ -39,6 +39,7 @@ function setStatus(message, timeout) {
  */
 async function render(packageIdentifier, mode) {
   const renderContainerEl = document.querySelector('.render-container');
+  renderContainerEl.innerHTML = '';
 
   try {
     if (mode === 'single') {
@@ -63,7 +64,12 @@ async function renderForPackageDependencies(packageIdentifier) {
   el.classList.add('view--dependencies');
 
   setStatus('Loading package dependencies ... This may take a few seconds.');
-  const dependenciesResponse = await fetch(`/api/dependencies/${packageIdentifier}`).then(r => r.json());
+  const dependenciesResponse = await fetch(`/api/dependencies/${packageIdentifier}`)
+    .then(async (r) => {
+      if (r.ok) return r.json();
+
+      throw new Error(await r.text());
+    });
   setStatus('');
 
   const nameEl = document.createElement('h2');
@@ -117,14 +123,10 @@ async function renderForPackage(packageIdentifier) {
   setStatus('Loading package result ... This may take a couple minutes.');
 
   const result = await fetch(`/api/results/${packageIdentifier}`)
-    .then(r => r.json())
-    .catch(err => {
-      el.textContent = 'Error fetching package: ' + err.toString();
-      throw err;
-    })
-    .finally(() => {
-      el.textContent = '';
-      el.classList.remove('loading');
+    .then(async (r) => {
+      if (r.ok) return r.json();
+
+      throw new Error(await r.text());
     });
 
   const nameEl = document.createElement('h2');

@@ -48,10 +48,9 @@ app.get('/api/dependencies/:packageIdentifier(*)', async (req, res) => {
   });
 });
 
-// TODO 5.0.0-alpha.8
-app.use(async (err, req, res) => {
+app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).send(err.toString());
+  res.status(500).send(err.message);
 });
 
 Lib.init();
