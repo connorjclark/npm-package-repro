@@ -8,26 +8,39 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css" />
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css" />
   <style>
-    .loading {
-      font-size: 30px;
+    .package-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      overflow-y: auto;
+      max-height: 20vh;
+      border-bottom: 1px solid black;
+    }
+    .package-selector__dep {
+      padding: 5px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <h1>npm-package-repro</h1>
-
-  <label>
-    Package: <input class="package-input" type="text" value="totally-fair-rng@1.0.1">
-  </label>
-
-  <div class="mode-input">
+  <header>
+    <h1>npm-package-repro</h1>
+  
     <label>
-      Check single package <input type="radio" name="mode" value="single" checked>
+      Package: <input class="package-input" type="text" value="totally-fair-rng@1.0.1">
     </label>
-    <label>
-      Audit package dependencies <input type="radio" name="mode" value="deps">
-    </label>
-  </div>
+    
+    <div class="mode-input">
+      Check:
+      <label>
+        single package <input type="radio" name="mode" value="single" checked>
+      </label>
+      <label>
+        dependencies <input type="radio" name="mode" value="deps">
+      </label>
+    </div>
+
+    <button class="go-button">Go</button>
+  </header>
 
   <div class="render-container"></div>
 

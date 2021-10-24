@@ -1,11 +1,10 @@
-import fs from 'fs';
 import express from 'express';
 import lru_map from 'lru_map';
 import * as Lib from '../src/lib.js';
 
-const {LRUMap} = lru_map;
+const { LRUMap } = lru_map;
 
-/** @type {Map<string, Promise>} */
+/** @type {Map<string, Promise<any>>} */
 const pendingJobs = new Map();
 /** @type {LRUMap<string, Array<{name: string, version: string}>} */
 const dependenciesCache = new LRUMap(100);
@@ -18,25 +17,23 @@ app.get('/', (req, res) => {
   res.sendFile('index.html', { root: '.tmp/web' });
 });
 
-app.get('/results/:packageIdentifier', async (req, res) => {
+app.get('/api/results/:packageIdentifier(*)', async (req, res) => {
   const packageIdentifier = Lib.resolvePackageIdentifier(req.params.packageIdentifier);
 
-  // If result is not present, calculate it.
-  if (!fs.existsSync(`.tmp/results/${packageIdentifier}.json`)) {
-    if (pendingJobs.has(packageIdentifier)) {
-      await pendingJobs.get(packageIdentifier);
-    } else {
-      const job = Lib.processPackageIfNeeded(packageIdentifier);
-      pendingJobs.set(packageIdentifier, job);
-      await job;
-      pendingJobs.delete(packageIdentifier);
-    }
+  let result;
+  if (pendingJobs.has(packageIdentifier)) {
+    result = await pendingJobs.get(packageIdentifier);
+  } else {
+    const job = Lib.processPackageIfNeeded(packageIdentifier);
+    pendingJobs.set(packageIdentifier, job);
+    result = await job;
+    pendingJobs.delete(packageIdentifier);
   }
 
-  res.sendFile(`results/${packageIdentifier}.json`, { root: '.tmp' });
+  res.send(result);
 });
 
-app.get('/dependencies/:packageIdentifier', async (req, res) => {
+app.get('/api/dependencies/:packageIdentifier(*)', async (req, res) => {
   const packageIdentifier = Lib.resolvePackageIdentifier(req.params.packageIdentifier);
 
   let deps = dependenciesCache.get(packageIdentifier);
@@ -45,7 +42,10 @@ app.get('/dependencies/:packageIdentifier', async (req, res) => {
     dependenciesCache.set(packageIdentifier, deps);
   }
 
-  res.send(deps);
+  res.send({
+    packageIdentifier,
+    dependencies: deps,
+  });
 });
 
 Lib.init();

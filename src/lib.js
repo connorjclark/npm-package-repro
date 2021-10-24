@@ -87,6 +87,7 @@ async function processPackageIfNeeded(packageIdentifier) {
       name: packageDetails.name,
       version: packageDetails.version,
       success: false,
+      diffs: [],
       errors: [err.toString()],
     };
   }
@@ -104,6 +105,7 @@ async function processPackage(packageDetails) {
       name: packageDetails.name,
       version: packageDetails.version,
       success: false,
+      diffs: [],
       errors: [
         'Missing `repository` in package.json',
       ],
@@ -115,6 +117,7 @@ async function processPackage(packageDetails) {
       name: packageDetails.name,
       version: packageDetails.version,
       success: false,
+      diffs: [],
       errors: [
         '`packageDetails.repository.type` must be `git`',
       ],
@@ -149,6 +152,7 @@ async function processPackage(packageDetails) {
     errors.push(`could not find any relevant commits, tried: ${possibleCommits.join(' ')}`);
     return {
       success: false,
+      diffs: [],
       errors,
     };
   }
@@ -313,7 +317,7 @@ function getPackageDependencies(packageIdentifier) {
     // TODO: use parsePackageIdentifier
     const [, scope, name, version] = line.match(/─ (@?)(.+)@(.+)/) || [];
     return { name: scope + name, version };
-  });
+  }).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export {
