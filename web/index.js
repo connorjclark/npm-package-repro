@@ -37,6 +37,9 @@ async function renderForPackage(packageName) {
     matching: 'lines',
     outputFormat: 'side-by-side',
   });
+  for (const movedTagEl of diffEl.querySelectorAll('.d2h-moved-tag')) {
+    movedTagEl.remove();
+  }
   el.append(diffEl);
 }
 
