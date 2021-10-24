@@ -1,11 +1,10 @@
 import * as Diff2Html from 'diff2html';
 
 /**
- * @param {string} packageName
+ * @param {string} packageIdentifier
  */
-async function renderForPackage(packageName) {
-  const result = await fetch(`results/${packageName}.json`).then(r => r.json());
-  console.log(result);
+async function renderForPackage(packageIdentifier) {
+  const result = await fetch(`results/${packageIdentifier}.json`).then(r => r.json());
 
   const el = document.querySelector('.diff-container');
   el.innerHTML = '';
@@ -20,11 +19,10 @@ async function renderForPackage(packageName) {
     el.append(errorsEl);
   }
 
-  const parsedDiffs = Diff2Html.parse(result.diffs.map(d => d.diff).join('\n'), {
-    drawFileList: true,
-    matching: 'lines',
-    outputFormat: 'side-by-side',
-  });
+  const diffInput = result.diffs
+    .map(d => d.diff)
+    .join('\n');
+  const parsedDiffs = Diff2Html.parse(diffInput);
   
   for (const parsedDiff of parsedDiffs) {
     parsedDiff.oldName = parsedDiff.oldName.replace(/^\.tmp/, '');
@@ -35,7 +33,7 @@ async function renderForPackage(packageName) {
   diffEl.innerHTML = Diff2Html.html(parsedDiffs, {
     drawFileList: true,
     matching: 'lines',
-    outputFormat: 'side-by-side',
+    outputFormat: 'line-by-line',
   });
   for (const movedTagEl of diffEl.querySelectorAll('.d2h-moved-tag')) {
     movedTagEl.remove();
