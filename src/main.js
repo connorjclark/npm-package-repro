@@ -52,7 +52,7 @@ async function processPackageIfNeeded(packageDetails) {
     return JSON.parse(fs.readFileSync(resultPath, 'utf-8'));
   }
 
-  console.log('processing:', packageDetails.name, packageDetails.version);
+  console.log(`processing: ${packageDetails.name}@${packageDetails.version}`);
 
   let result;
   try {
@@ -206,7 +206,7 @@ async function processPackage(packageDetails) {
   fs.rmSync(githubArchive);
   const filesDiffRaw = execFileSync('bash', [
     '-c',
-    `diff -urNq ${packageDir} ${githubArchiveUnpackedDir}/package || true`,
+    `diff -urNqw ${packageDir} ${githubArchiveUnpackedDir}/package || true`,
   ], { encoding: 'utf-8' });
   const files = filesDiffRaw
     .split('\n')
@@ -217,7 +217,7 @@ async function processPackage(packageDetails) {
   for (const file of files) {
     const diff = execFileSync('bash', [
       '-c',
-      `diff -uN ${githubArchiveUnpackedDir}/package/${file} ${packageDir}/${file} || true`,
+      `diff -uNw ${githubArchiveUnpackedDir}/package/${file} ${packageDir}/${file} || true`,
     ], { encoding: 'utf-8' });
     diffs.push({ file, diff });
   }
