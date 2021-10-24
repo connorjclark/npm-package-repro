@@ -8,6 +8,17 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.13.1/styles/github.min.css" />
   <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css" />
   <style>
+    .status-bar {
+      display: none;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      padding: 5px;
+      background-color: bisque;
+      border-top: 1px solid black;
+    }
+    
     .package-selector {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -43,6 +54,8 @@
   </header>
 
   <div class="render-container"></div>
+
+  <div class="status-bar"></div>
 
   <script type="module" src="index.js"></script>
 </body>

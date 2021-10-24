@@ -1,10 +1,36 @@
 import * as Diff2Html from 'diff2html';
 
+let setStatusTimeoutHandle;
+
 /**
  * @param {string} message
+ * @param {number=} timeout
  */
-function setStatus(message) {
-  console.log(message);
+function setStatus(message, timeout) {
+  const el = document.querySelector('.status-bar');
+  if (setStatusTimeoutHandle) clearTimeout(setStatusTimeoutHandle);
+
+  if (!message) {
+    el.textContent = '';
+    el.style.display = 'none';
+    return;
+  }
+
+  // Wait 500ms before showing status, to prevent flicker.
+  setStatusTimeoutHandle = setTimeout(() => {
+    el.textContent = message;
+    el.style.display = 'block';
+  }, 500);
+
+  // Clear messsage after some time.
+  if (timeout !== undefined) {
+    setTimeout(() => {
+      if (el.textContent !== message) return;
+
+      el.textContent = '';
+      el.style.display = 'none';
+    }, timeout);
+  }
 }
 
 /**
@@ -14,14 +40,18 @@ function setStatus(message) {
 async function render(packageIdentifier, mode) {
   const renderContainerEl = document.querySelector('.render-container');
 
-  if (mode === 'single') {
-    const el = await renderForPackage(packageIdentifier);
-    renderContainerEl.innerHTML = '';
-    renderContainerEl.append(el);
-  } else if (mode === 'deps') {
-    const el = await renderForPackageDependencies(packageIdentifier);
-    renderContainerEl.innerHTML = '';
-    renderContainerEl.append(el);
+  try {
+    if (mode === 'single') {
+      const el = await renderForPackage(packageIdentifier);
+      renderContainerEl.innerHTML = '';
+      renderContainerEl.append(el);
+    } else if (mode === 'deps') {
+      const el = await renderForPackageDependencies(packageIdentifier);
+      renderContainerEl.innerHTML = '';
+      renderContainerEl.append(el);
+    }
+  } catch (err) {
+    setStatus(err.toString(), 10_000);
   }
 }
 
@@ -32,9 +62,8 @@ async function renderForPackageDependencies(packageIdentifier) {
   const el = document.createElement('div');
   el.classList.add('view--dependencies');
 
-  setStatus('loading package dependencies ...');
+  setStatus('Loading package dependencies ... This may take a few seconds.');
   const dependenciesResponse = await fetch(`/api/dependencies/${packageIdentifier}`).then(r => r.json());
-  setStatus('done loading package dependencies ...');
 
   const nameEl = document.createElement('h2');
   nameEl.textContent = `${dependenciesResponse.packageIdentifier} dependencies`;
@@ -71,7 +100,8 @@ async function renderForPackageDependencies(packageIdentifier) {
     renderPackage(targetEl.textContent);
   });
 
-  renderPackage(`${dependenciesResponse.dependencies[0].name}@${dependenciesResponse.dependencies[0].version}`);
+  const firstDep = dependenciesResponse.dependencies[0];
+  if (firstDep) renderPackage(`${firstDep.name}@${firstDep.version}`);
 
   return el;
 }
@@ -83,7 +113,7 @@ async function renderForPackage(packageIdentifier) {
   const el = document.createElement('div');
   el.classList.add('diff-container');
 
-  setStatus('Loading ... This may take a couple minutes.');
+  setStatus('Loading package result ... This may take a couple minutes.');
 
   const result = await fetch(`/api/results/${packageIdentifier}`)
     .then(r => r.json())
@@ -131,6 +161,7 @@ async function renderForPackage(packageIdentifier) {
   }
   el.append(diffEl);
 
+  setStatus('');
   return el;
 }
 
