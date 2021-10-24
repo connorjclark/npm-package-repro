@@ -12,6 +12,13 @@ import { execFileSync } from 'child_process';
  * @property {{integrity: string, shasum: string, tarball: string}} dist
  */
 
+function init() {
+  fs.mkdirSync('.tmp/packages-from-source', { recursive: true });
+  fs.mkdirSync('.tmp/packages', { recursive: true });
+  fs.mkdirSync('.tmp/repos', { recursive: true });
+  fs.mkdirSync('.tmp/results', { recursive: true });
+}
+
 /**
  * @param {string} packageIdentifier
  * @return {PackageDetails}
@@ -21,6 +28,19 @@ function getPackageDetails(packageIdentifier) {
   const packageDetails = JSON.parse(output);
   packageDetails.scripts = packageDetails.scripts || {};
   return packageDetails;
+}
+
+/**
+ * If version is not present, use the latest.
+ * @param {string} packageIdentifier
+ */
+function resolvePackageIdentifier(packageIdentifier) {
+  if (!parsePackageIdentifier(packageIdentifier).version) {
+    const packageDetails = getPackageDetails(packageIdentifier);
+    return `${packageDetails.name}@${packageDetails.version}`;
+  }
+
+  return packageIdentifier;
 }
 
 /**
@@ -47,6 +67,10 @@ function gitRevisionExists(dir, rev) {
  * @param {string} packageIdentifier
  */
 async function processPackageIfNeeded(packageIdentifier) {
+  if (!parsePackageIdentifier(packageIdentifier).version) {
+    throw new Error(`expected version in packageIdentifier: ${packageIdentifier}`);
+  }
+
   const resultPath = `.tmp/results/${packageIdentifier.replace('/', '_')}.json`;
   if (fs.existsSync(resultPath)) {
     return JSON.parse(fs.readFileSync(resultPath, 'utf-8'));
@@ -268,7 +292,7 @@ async function processPackage(packageDetails) {
  */
 function parsePackageIdentifier(packageIdentifier) {
   const [, name, version] = packageIdentifier.match(/(@?[^@]+)@?(.*)/) || [];
-  return {name, version};
+  return { name, version };
 }
 
 /**
@@ -276,6 +300,10 @@ function parsePackageIdentifier(packageIdentifier) {
  * @return {Array<{name: string, version: string}>}
  */
 function getPackageDependencies(packageIdentifier) {
+  if (!parsePackageIdentifier(packageIdentifier).version) {
+    throw new Error(`expected version in packageIdentifier: ${packageIdentifier}`);
+  }
+
   // --flatten would be nice but for some silly reason the output is truncated at ~100 items.
   const output = execFileSync('bash', [
     '-c',
@@ -288,22 +316,9 @@ function getPackageDependencies(packageIdentifier) {
   });
 }
 
-/**
- * @param {string} packageIdentifier
- */
-async function checkAllDepsForPackage(packageIdentifier) {
-  const deps = getPackageDependencies(packageIdentifier);
-  for (const { name, version } of deps) {
-    const packageIdentifier = `${name}@${version}`;
-    const result = await processPackageIfNeeded(packageIdentifier);
-    if (!result.success) console.log(`problematic: ${packageIdentifier}`);
-    else console.log(`ok: ${packageIdentifier}`);
-  }
-}
-
 export {
-  parsePackageIdentifier,
-  getPackageDetails,
+  init,
+  resolvePackageIdentifier,
   processPackageIfNeeded,
-  checkAllDepsForPackage,
+  getPackageDependencies,
 };

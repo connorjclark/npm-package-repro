@@ -20,9 +20,16 @@
     Package: <input class="package-input" type="text" value="totally-fair-rng@1.0.1">
   </label>
 
-  <div class="diff-container">
-
+  <div class="mode-input">
+    <label>
+      Check single package <input type="radio" name="mode" value="single" checked>
+    </label>
+    <label>
+      Audit package dependencies <input type="radio" name="mode" value="deps">
+    </label>
   </div>
+
+  <div class="render-container"></div>
 
   <script type="module" src="index.js"></script>
 </body>

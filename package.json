@@ -16,6 +16,7 @@
     "typescript": "^4.4.4"
   },
   "dependencies": {
-    "diff2html": "^3.4.13"
+    "diff2html": "^3.4.13",
+    "lru_map": "^0.4.1"
   }
 }

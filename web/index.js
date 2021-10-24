@@ -2,9 +2,24 @@ import * as Diff2Html from 'diff2html';
 
 /**
  * @param {string} packageIdentifier
+ * @param {string} mode
+ */
+async function render(packageIdentifier, mode) {
+  if (mode === 'single') {
+    await renderForPackage(packageIdentifier);
+  } else if (mode === 'deps') {
+    
+  }
+}
+
+/**
+ * @param {string} packageIdentifier
  */
 async function renderForPackage(packageIdentifier) {
-  const el = document.querySelector('.diff-container');
+  const el = document.createElement('div');
+  el.classList.add('diff-container');
+  document.querySelector('.render-container').addEventListener(el);
+
   el.textContent = 'Loading ... This may take a couple minutes.';
   el.classList.add('loading');
 
@@ -58,8 +73,14 @@ async function renderForPackage(packageIdentifier) {
 document.addEventListener('DOMContentLoaded', () => {
   const packageInputEl = document.querySelector('.package-input');
   packageInputEl.addEventListener('change', () => {
-    renderForPackage(packageInputEl.value);
+    render(packageInputEl.value, document.querySelector('.mode-input input:checked').value);
   });
 
-  renderForPackage(packageInputEl.value);
+  for (const el of document.querySelectorAll('.mode-input input')) {
+    el.addEventListener('change', () => {
+      render(packageInputEl.value, document.querySelector('.mode-input input:checked').value);
+    });
+  }
+
+  render(packageInputEl.value, document.querySelector('.mode-input input:checked').value);
 });
