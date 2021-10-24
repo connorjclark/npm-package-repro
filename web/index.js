@@ -4,11 +4,25 @@ import * as Diff2Html from 'diff2html';
  * @param {string} packageIdentifier
  */
 async function renderForPackage(packageIdentifier) {
-  const result = await fetch(`/results/${packageIdentifier}`).then(r => r.json());
-
   const el = document.querySelector('.diff-container');
-  el.innerHTML = '';
+  el.textContent = 'Loading ... This may take a couple minutes.';
+  el.classList.add('loading');
 
+  const result = await fetch(`/results/${packageIdentifier}`)
+    .then(r => r.json())
+    .catch(err => {
+      el.textContent = 'Error fetching package: ' + err.toString();
+      throw err;
+    })
+    .finally(() => {
+      el.textContent = '';
+      el.classList.remove('loading');
+    });
+
+  const nameEl = document.createElement('h2');
+  nameEl.textContent = `${result.name}@${result.version}`;
+  el.append(nameEl);
+  
   const successEl = document.createElement('div');
   successEl.textContent = `Success: ${result.success}`;
   el.append(successEl);
@@ -23,7 +37,7 @@ async function renderForPackage(packageIdentifier) {
     .map(d => d.diff)
     .join('\n');
   const parsedDiffs = Diff2Html.parse(diffInput);
-  
+
   for (const parsedDiff of parsedDiffs) {
     parsedDiff.oldName = parsedDiff.oldName.replace(/^\.tmp/, '');
     parsedDiff.newName = parsedDiff.newName.replace(/^\.tmp/, '');

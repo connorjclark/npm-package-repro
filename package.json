@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "build-server": "mkdir -p .tmp/web && cp web/index.html .tmp/web && esbuild --bundle web/index.js --outfile=.tmp/web/index.js",
-    "run-server": "node src/server.js"
+    "run-server": "node server/server.js"
   },
   "keywords": [],
   "author": "Connor Clark",

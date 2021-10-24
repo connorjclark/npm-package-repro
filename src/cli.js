@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { checkAllDepsForPackage, processPackageIfNeeded } from './lib';
+import { checkAllDepsForPackage, processPackageIfNeeded } from './lib.js';
 
 async function main() {
   fs.mkdirSync('.tmp/packages-from-source', { recursive: true });

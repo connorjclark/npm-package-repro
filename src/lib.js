@@ -60,6 +60,8 @@ async function processPackageIfNeeded(packageIdentifier) {
     result = await processPackage(packageDetails);
   } catch (err) {
     result = {
+      name: packageDetails.name,
+      version: packageDetails.version,
       success: false,
       errors: [err.toString()],
     };
@@ -75,6 +77,8 @@ async function processPackageIfNeeded(packageIdentifier) {
 async function processPackage(packageDetails) {
   if (!packageDetails.repository) {
     return {
+      name: packageDetails.name,
+      version: packageDetails.version,
       success: false,
       errors: [
         'Missing `repository` in package.json',
@@ -84,6 +88,8 @@ async function processPackage(packageDetails) {
 
   if (packageDetails.repository.type !== 'git') {
     return {
+      name: packageDetails.name,
+      version: packageDetails.version,
       success: false,
       errors: [
         '`packageDetails.repository.type` must be `git`',
@@ -195,6 +201,8 @@ async function processPackage(packageDetails) {
 
   if (githubArchiveShasum === packageDetails.dist.shasum) {
     return {
+      name: packageDetails.name,
+      version: packageDetails.version,
       success: true,
       errors,
     };
@@ -247,6 +255,8 @@ async function processPackage(packageDetails) {
   }
 
   return {
+    name: packageDetails.name,
+    version: packageDetails.version,
     success,
     diffs,
     errors,
