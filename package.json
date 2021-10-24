@@ -3,13 +3,18 @@
   "name": "npm-package-repro",
   "description": "",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build-web": "mkdir -p .tmp/web && cp web/index.html .tmp/web && rm -f .tmp/web/results && ln -s $PWD/.tmp/results .tmp/web/results && esbuild --bundle web/index.js --outfile=.tmp/web/index.js",
+    "serve-web": "cd .tmp/web && python3 -m http.server"
   },
   "keywords": [],
   "author": "Connor Clark",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^16.11.4",
+    "esbuild": "^0.13.9",
     "typescript": "^4.4.4"
+  },
+  "dependencies": {
+    "diff2html": "^3.4.13"
   }
 }

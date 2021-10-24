@@ -1,3 +1,4 @@
 node_modules
 .tmp
+web/results
 .DS_Store
