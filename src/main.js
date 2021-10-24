@@ -198,24 +198,6 @@ async function processPackage(packageDetails) {
     };
   }
 
-  // Diff the metadata.
-  const tarMetadataDiffRaw = execFileSync('bash', [
-    '-c',
-    `diff <(tar -tvf ${npmArchive} | sort) <(tar -tvf ${githubArchive} | sort) || true`,
-  ], { encoding: 'utf-8' });
-  const tarMetadataDiff = {
-    raw: tarMetadataDiffRaw,
-    files:
-      [...new Set(
-        tarMetadataDiffRaw.split('\n')
-          .filter(line => line.startsWith('<') || line.startsWith('>'))
-          .map(line => {
-            const parts = line.split(/\s/);
-            return parts[parts.length - 1];
-          })
-      )],
-  };
-
   // Diff the contents.
   const githubArchiveUnpackedDir = `.tmp/packages-from-source/${packageDetails.name}/${version}`;
   fs.rmSync(githubArchiveUnpackedDir, { force: true, recursive: true });
@@ -235,7 +217,7 @@ async function processPackage(packageDetails) {
   for (const file of files) {
     const diff = execFileSync('bash', [
       '-c',
-      `diff -uN ${packageDir}/${file} ${githubArchiveUnpackedDir}/package/${file} || true`,
+      `diff -uN ${githubArchiveUnpackedDir}/package/${file} ${packageDir}/${file} || true`,
     ], { encoding: 'utf-8' });
     diffs.push({ file, diff });
   }
@@ -264,7 +246,6 @@ async function processPackage(packageDetails) {
 
   return {
     success,
-    // tarMetadataDiff,
     diffs,
     errors,
   };
