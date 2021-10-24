@@ -64,9 +64,10 @@ async function renderForPackageDependencies(packageIdentifier) {
 
   setStatus('Loading package dependencies ... This may take a few seconds.');
   const dependenciesResponse = await fetch(`/api/dependencies/${packageIdentifier}`).then(r => r.json());
+  setStatus('');
 
   const nameEl = document.createElement('h2');
-  nameEl.textContent = `${dependenciesResponse.packageIdentifier} dependencies`;
+  nameEl.textContent = `${dependenciesResponse.packageIdentifier} dependencies (${dependenciesResponse.dependencies.length})`;
   el.append(nameEl);
 
   const packageSelectorEl = document.createElement('div');

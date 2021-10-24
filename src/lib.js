@@ -1,6 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { execFileSync } from 'child_process';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+
+const execFilePromise = promisify(execFile);
 
 /**
  * @typedef PackageDetails
@@ -21,11 +24,16 @@ function init() {
 
 /**
  * @param {string} packageIdentifier
- * @return {PackageDetails}
+ * @return {Promise<PackageDetails>}
  */
-function getPackageDetails(packageIdentifier) {
-  const output = execFileSync('npm', ['view', '--json', packageIdentifier], { encoding: 'utf-8' });
-  const packageDetails = JSON.parse(output);
+async function getPackageDetails(packageIdentifier) {
+  const output = await execFilePromise('npm', ['view', '--json', packageIdentifier], { encoding: 'utf-8' })
+    .catch(r => /** @type {{stdout: string, stderr: string}} */(r));
+  if (output.stderr.includes('is not in this registry')) {
+    throw new Error(`${packageIdentifier} is not in the npm registry`);
+  }
+
+  const packageDetails = JSON.parse(output.stdout);
   packageDetails.scripts = packageDetails.scripts || {};
   return packageDetails;
 }
@@ -34,9 +42,9 @@ function getPackageDetails(packageIdentifier) {
  * If version is not present, use the latest.
  * @param {string} packageIdentifier
  */
-function resolvePackageIdentifier(packageIdentifier) {
+async function resolvePackageIdentifier(packageIdentifier) {
   if (!parsePackageIdentifier(packageIdentifier).version) {
-    const packageDetails = getPackageDetails(packageIdentifier);
+    const packageDetails = await getPackageDetails(packageIdentifier);
     return `${packageDetails.name}@${packageDetails.version}`;
   }
 
@@ -54,9 +62,9 @@ function readJson(file) {
  * @param {string} dir
  * @param {string} rev
  */
-function gitRevisionExists(dir, rev) {
+async function gitRevisionExists(dir, rev) {
   try {
-    execFileSync('git', ['rev-parse', '-q', '--verify', `${rev}^{commit}`], { cwd: dir });
+    await execFilePromise('git', ['rev-parse', '-q', '--verify', `${rev}^{commit}`], { cwd: dir });
     return true;
   } catch (err) {
     return false;
@@ -76,7 +84,7 @@ async function processPackageIfNeeded(packageIdentifier) {
     return JSON.parse(fs.readFileSync(resultPath, 'utf-8'));
   }
 
-  const packageDetails = getPackageDetails(packageIdentifier);
+  const packageDetails = await getPackageDetails(packageIdentifier);
   console.log(`processing: ${packageDetails.name}@${packageDetails.version}`);
 
   let result;
@@ -133,21 +141,29 @@ async function processPackage(packageDetails) {
   if (!fs.existsSync(`${repoDir}/.git`)) {
     const url = packageDetails.repository.url.replace(/^git\+/, '');
     // TODO: wrap all commands in function that only prints output if the command fails.
-    execFileSync('git', ['clone', url, repoDir], { stdio: 'ignore' });
+    await execFilePromise('git', ['clone', url, repoDir]);
   } else {
-    execFileSync('git', ['fetch', 'origin'], { cwd: repoDir, stdio: 'ignore' });
+    await execFilePromise('git', ['fetch', 'origin'], { cwd: repoDir });
   }
   const pkgManager = fs.existsSync(`${repoDir}/yarn.lock`) ? 'yarn' : 'npm';
 
   const possibleCommits = [];
   if (packageDetails.gitHead) possibleCommits.push(packageDetails.gitHead);
   possibleCommits.push(`v${version}`, version);
-  const commit = possibleCommits.find(commit => gitRevisionExists(repoDir, commit));
+
+  let commit;
+  for (const possibleCommit of possibleCommits) {
+    if (await gitRevisionExists(repoDir, possibleCommit)) {
+      commit = possibleCommit;
+      break;
+    }
+  }
+
   if (commit !== packageDetails.gitHead) {
     errors.push(`package was published to npm using unreachable git commit: ${packageDetails.gitHead}. Will try tags.`);
   }
   if (commit) {
-    execFileSync('git', ['checkout', commit], { cwd: repoDir, stdio: 'ignore' });
+    await execFilePromise('git', ['checkout', commit], { cwd: repoDir });
   } else {
     errors.push(`could not find any relevant commits, tried: ${possibleCommits.join(' ')}`);
     return {
@@ -157,20 +173,20 @@ async function processPackage(packageDetails) {
     };
   }
 
-  execFileSync('git', ['clean', '-fxd'], { cwd: repoDir, stdio: 'ignore' });
+  await execFilePromise('git', ['clean', '-fxd'], { cwd: repoDir });
 
   // Download archive.
   fs.mkdirSync('.tmp/packages', { recursive: true });
   const packageTarballPath = `.tmp/packages/${packageDetails.name}-${version}.tgz`;
   if (!fs.existsSync(packageTarballPath)) {
-    execFileSync('curl', ['-o', packageTarballPath, packageDetails.dist.tarball], { stdio: 'ignore' });
+    await execFilePromise('curl', ['-o', packageTarballPath, packageDetails.dist.tarball]);
   }
 
   // Unzip archive.
   const packageDir_ = `.tmp/packages/${packageDetails.name}/${version}`;
   if (!fs.existsSync(packageDir_)) {
     fs.mkdirSync(packageDir_, { recursive: true });
-    execFileSync('tar', ['-xf', packageTarballPath, '-C', packageDir_]);
+    await execFilePromise('tar', ['-xf', packageTarballPath, '-C', packageDir_]);
   }
   const packageDir = `${packageDir_}/package`;
 
@@ -178,19 +194,19 @@ async function processPackage(packageDetails) {
   const lifestyleScriptPresent = ['prepare', 'prepack', 'prepublishOnly', 'prepublish'].some(name => packageDetails.scripts[name]);
   if (lifestyleScriptPresent) {
     if (pkgManager === 'npm') {
-      execFileSync('npm', ['install'], { cwd: repoDir });
+      await execFilePromise('npm', ['install'], { cwd: repoDir });
       if (packageDetails.scripts.prepublishOnly) {
         try {
-          execFileSync('npm', ['run', 'prepublishOnly'], { cwd: repoDir });
+          await execFilePromise('npm', ['run', 'prepublishOnly'], { cwd: repoDir });
         } catch (err) {
           errors.push(err.toString());
         }
       }
     } else {
-      execFileSync('yarn', [], { cwd: repoDir });
+      await execFilePromise('yarn', [], { cwd: repoDir });
       if (packageDetails.scripts.prepublishOnly) {
         try {
-          execFileSync('yarn', ['prepublishOnly'], { cwd: repoDir });
+          await execFilePromise('yarn', ['prepublishOnly'], { cwd: repoDir });
         } catch (err) {
           errors.push(err.toString());
         }
@@ -204,11 +220,11 @@ async function processPackage(packageDetails) {
     errors.push(`lifestyle scripts were not found, so guessing that this script should be run instead: ${nonStandardPrepareScript}`);
 
     if (pkgManager === 'npm') {
-      execFileSync('npm', ['install'], { cwd: repoDir });
-      execFileSync('npm', ['run', nonStandardPrepareScript], { cwd: repoDir });
+      await execFilePromise('npm', ['install'], { cwd: repoDir });
+      await execFilePromise('npm', ['run', nonStandardPrepareScript], { cwd: repoDir });
     } else {
-      execFileSync('yarn', [], { cwd: repoDir });
-      execFileSync('yarn', [nonStandardPrepareScript], { cwd: repoDir });
+      await execFilePromise('yarn', [], { cwd: repoDir });
+      await execFilePromise('yarn', [nonStandardPrepareScript], { cwd: repoDir });
     }
   }
 
@@ -219,13 +235,14 @@ async function processPackage(packageDetails) {
   fs.writeFileSync(`${repoDir}/package.json`, JSON.stringify(pkg, null, 2) + '\n');
 
   // Create package from GitHub repo.
-  execFileSync('npm', ['pack'], { cwd: repoDir, stdio: 'ignore' });
+  await execFilePromise('npm', ['pack'], { cwd: repoDir });
 
   // Compare with package from npm.
   const githubArchive = `${repoDir}/${packageDetails.name}-${version}.tgz`;
 
   // Check shasum.
-  const githubArchiveShasum = execFileSync('shasum', [githubArchive], { encoding: 'utf-8' }).split(' ')[0];
+  const githubArchiveShasumOutput = await execFilePromise('shasum', [githubArchive], { encoding: 'utf-8' });
+  const githubArchiveShasum = githubArchiveShasumOutput.stdout.split(' ')[0];
 
   if (githubArchiveShasum === packageDetails.dist.shasum) {
     return {
@@ -240,9 +257,9 @@ async function processPackage(packageDetails) {
   const githubArchiveUnpackedDir = `.tmp/packages-from-source/${packageDetails.name}/${version}`;
   fs.rmSync(githubArchiveUnpackedDir, { force: true, recursive: true });
   fs.mkdirSync(githubArchiveUnpackedDir, { recursive: true });
-  execFileSync('tar', ['-xf', githubArchive, '-C', githubArchiveUnpackedDir]);
+  await execFilePromise('tar', ['-xf', githubArchive, '-C', githubArchiveUnpackedDir]);
   fs.rmSync(githubArchive);
-  const filesDiffRaw = execFileSync('bash', [
+  const { stdout: filesDiffRaw } = await execFilePromise('bash', [
     '-c',
     `diff -urNqw ${packageDir} ${githubArchiveUnpackedDir}/package || true`,
   ], { encoding: 'utf-8' });
@@ -253,7 +270,7 @@ async function processPackage(packageDetails) {
 
   const diffs = [];
   for (const file of files) {
-    const diff = execFileSync('bash', [
+    const { stdout: diff } = await execFilePromise('bash', [
       '-c',
       `diff -uNw ${githubArchiveUnpackedDir}/package/${file} ${packageDir}/${file} || true`,
     ], { encoding: 'utf-8' });
@@ -301,23 +318,35 @@ function parsePackageIdentifier(packageIdentifier) {
 
 /**
  * @param {string} packageIdentifier
- * @return {Array<{name: string, version: string}>}
+ * @return {Promise<Array<{name: string, version: string}>>}
  */
-function getPackageDependencies(packageIdentifier) {
+async function getPackageDependencies(packageIdentifier) {
   if (!parsePackageIdentifier(packageIdentifier).version) {
     throw new Error(`expected version in packageIdentifier: ${packageIdentifier}`);
   }
 
   // --flatten would be nice but for some silly reason the output is truncated at ~100 items.
-  const output = execFileSync('bash', [
+  const output = await execFilePromise('bash', [
     '-c',
     `npx --yes npm-remote-ls ${packageIdentifier} -d false -o false`,
-  ], { encoding: 'utf-8' });
-  return output.trim().split('\n').slice(1).map(line => {
+  ], { encoding: 'utf-8' })
+    .catch(r => /** @type {{stdout: string, stderr: string}} */(r));
+  if (output.stdout.includes('could not load')) {
+    throw new Error(output.stdout);
+  }
+  if (output.stderr) {
+    throw new Error(output.stderr);
+  }
+
+  const deps = output.stdout.trim().split('\n').slice(1).map(line => {
     // TODO: use parsePackageIdentifier
     const [, scope, name, version] = line.match(/─ (@?)(.+)@(.+)/) || [];
     return { name: scope + name, version };
   }).sort((a, b) => a.name.localeCompare(b.name));
+
+  // TODO: just return packageIdentifiers. And dedupe.
+
+  return deps;
 }
 
 export {

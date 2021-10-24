@@ -18,7 +18,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/results/:packageIdentifier(*)', async (req, res) => {
-  const packageIdentifier = Lib.resolvePackageIdentifier(req.params.packageIdentifier);
+  const packageIdentifier = await Lib.resolvePackageIdentifier(req.params.packageIdentifier);
 
   let result;
   if (pendingJobs.has(packageIdentifier)) {
@@ -34,11 +34,11 @@ app.get('/api/results/:packageIdentifier(*)', async (req, res) => {
 });
 
 app.get('/api/dependencies/:packageIdentifier(*)', async (req, res) => {
-  const packageIdentifier = Lib.resolvePackageIdentifier(req.params.packageIdentifier);
+  const packageIdentifier = await Lib.resolvePackageIdentifier(req.params.packageIdentifier);
 
   let deps = dependenciesCache.get(packageIdentifier);
   if (!deps) {
-    deps = Lib.getPackageDependencies(packageIdentifier);
+    deps = await Lib.getPackageDependencies(packageIdentifier);
     dependenciesCache.set(packageIdentifier, deps);
   }
 
@@ -46,6 +46,12 @@ app.get('/api/dependencies/:packageIdentifier(*)', async (req, res) => {
     packageIdentifier,
     dependencies: deps,
   });
+});
+
+// TODO 5.0.0-alpha.8
+app.use(async (err, req, res) => {
+  console.error(err.stack);
+  res.status(500).send(err.toString());
 });
 
 Lib.init();

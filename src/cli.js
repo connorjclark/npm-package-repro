@@ -4,7 +4,7 @@ import * as Lib from './lib.js';
  * @param {string} packageIdentifier
  */
 async function checkAllDepsForPackage(packageIdentifier) {
-  const deps = Lib.getPackageDependencies(packageIdentifier);
+  const deps = await Lib.getPackageDependencies(packageIdentifier);
   for (const { name, version } of deps) {
     const packageIdentifier = `${name}@${version}`;
     const result = await Lib.processPackageIfNeeded(packageIdentifier);
@@ -19,7 +19,7 @@ async function main() {
   let packageIdentifier = process.argv.slice(2).find(arg => !arg.startsWith('--'));
   if (!packageIdentifier) throw new Error('missing package identifier');
 
-  packageIdentifier = Lib.resolvePackageIdentifier(packageIdentifier);
+  packageIdentifier = await Lib.resolvePackageIdentifier(packageIdentifier);
 
   // TODO: --check-deps (only those listed in package.json)
   // TODO: --check-deps-from-source-maps (only those listed in published sm files)
