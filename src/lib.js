@@ -16,7 +16,7 @@ import { execFileSync } from 'child_process';
  * @param {string} packageIdentifier
  * @return {PackageDetails}
  */
-function npmView(packageIdentifier) {
+function getPackageDetails(packageIdentifier) {
   const output = execFileSync('npm', ['view', '--json', packageIdentifier], { encoding: 'utf-8' });
   const packageDetails = JSON.parse(output);
   packageDetails.scripts = packageDetails.scripts || {};
@@ -52,7 +52,7 @@ async function processPackageIfNeeded(packageIdentifier) {
     return JSON.parse(fs.readFileSync(resultPath, 'utf-8'));
   }
 
-  const packageDetails = npmView(packageIdentifier);
+  const packageDetails = getPackageDetails(packageIdentifier);
   console.log(`processing: ${packageDetails.name}@${packageDetails.version}`);
 
   let result;
@@ -255,7 +255,15 @@ async function processPackage(packageDetails) {
 
 /**
  * @param {string} packageIdentifier
- * @return {Array<{packageName: string, version: string}>}
+ */
+function parsePackageIdentifier(packageIdentifier) {
+  const [, name, version] = packageIdentifier.match(/(@?[^@]+)@?(.*)/) || [];
+  return {name, version};
+}
+
+/**
+ * @param {string} packageIdentifier
+ * @return {Array<{name: string, version: string}>}
  */
 function getPackageDependencies(packageIdentifier) {
   // --flatten would be nice but for some silly reason the output is truncated at ~100 items.
@@ -264,8 +272,9 @@ function getPackageDependencies(packageIdentifier) {
     `npx --yes npm-remote-ls ${packageIdentifier} -d false -o false`,
   ], { encoding: 'utf-8' });
   return output.trim().split('\n').slice(1).map(line => {
+    // TODO: use parsePackageIdentifier
     const [, scope, name, version] = line.match(/─ (@?)(.+)@(.+)/) || [];
-    return { packageName: scope + name, version };
+    return { name: scope + name, version };
   });
 }
 
@@ -274,32 +283,17 @@ function getPackageDependencies(packageIdentifier) {
  */
 async function checkAllDepsForPackage(packageIdentifier) {
   const deps = getPackageDependencies(packageIdentifier);
-  for (const { packageName, version } of deps) {
-    const packageIdentifier = `${packageName}@${version}`;
+  for (const { name, version } of deps) {
+    const packageIdentifier = `${name}@${version}`;
     const result = await processPackageIfNeeded(packageIdentifier);
     if (!result.success) console.log(`problematic: ${packageIdentifier}`);
     else console.log(`ok: ${packageIdentifier}`);
   }
 }
 
-async function main() {
-  fs.mkdirSync('.tmp/packages-from-source', { recursive: true });
-  fs.mkdirSync('.tmp/packages', { recursive: true });
-  fs.mkdirSync('.tmp/repos', { recursive: true });
-  fs.mkdirSync('.tmp/results', { recursive: true });
-
-  const packageIdentifier = process.argv.slice(2).find(arg => !arg.startsWith('--'));
-  if (!packageIdentifier) throw new Error('missing package identifier');
-
-  // TODO: --check-deps (only those listed in package.json)
-  // TODO: --check-deps-from-source-maps (only those listed in published sm files)
-
-  if (process.argv.includes('--check-all-deps')) {
-    await checkAllDepsForPackage(packageIdentifier);
-  } else {
-    const result = await processPackageIfNeeded(packageIdentifier);
-    console.log(result);
-  }
-}
-
-main();
+export {
+  parsePackageIdentifier,
+  getPackageDetails,
+  processPackageIfNeeded,
+  checkAllDepsForPackage,
+};

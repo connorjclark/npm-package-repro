@@ -4,7 +4,7 @@ import * as Diff2Html from 'diff2html';
  * @param {string} packageIdentifier
  */
 async function renderForPackage(packageIdentifier) {
-  const result = await fetch(`results/${packageIdentifier}.json`).then(r => r.json());
+  const result = await fetch(`/results/${packageIdentifier}`).then(r => r.json());
 
   const el = document.querySelector('.diff-container');
   el.innerHTML = '';

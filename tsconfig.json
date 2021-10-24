@@ -11,6 +11,8 @@
     "noEmit": true,
   },
   "include": [
-    "src/**/*.js"
+    "src/**/*.js",
+    "web/**/*.js",
+    "server/**/*.js"
   ]
 }
