@@ -44,14 +44,15 @@ function gitRevisionExists(dir, rev) {
 }
 
 /**
- * @param {PackageDetails} packageDetails
+ * @param {string} packageIdentifier
  */
-async function processPackageIfNeeded(packageDetails) {
-  const resultPath = `.tmp/results/${packageDetails.name.replace('/', '_')}@${packageDetails.version}.json`;
+async function processPackageIfNeeded(packageIdentifier) {
+  const resultPath = `.tmp/results/${packageIdentifier.replace('/', '_')}.json`;
   if (fs.existsSync(resultPath)) {
     return JSON.parse(fs.readFileSync(resultPath, 'utf-8'));
   }
 
+  const packageDetails = npmView(packageIdentifier);
   console.log(`processing: ${packageDetails.name}@${packageDetails.version}`);
 
   let result;
@@ -262,7 +263,7 @@ function getPackageDependencies(packageIdentifier) {
     '-c',
     `npx --yes npm-remote-ls ${packageIdentifier} -d false -o false`,
   ], { encoding: 'utf-8' });
-  return output.split('\n').slice(1).map(line => {
+  return output.trim().split('\n').slice(1).map(line => {
     const [, scope, name, version] = line.match(/─ (@?)(.+)@(.+)/) || [];
     return { packageName: scope + name, version };
   });
@@ -274,10 +275,10 @@ function getPackageDependencies(packageIdentifier) {
 async function checkAllDepsForPackage(packageIdentifier) {
   const deps = getPackageDependencies(packageIdentifier);
   for (const { packageName, version } of deps) {
-    const packageDetails = npmView(`${packageName}@${version}`);
-    const result = await processPackageIfNeeded(packageDetails);
-    if (!result.success) console.log(`problematic: ${packageName}@${version}`);
-    else console.log(`ok: ${packageName}@${version}`);
+    const packageIdentifier = `${packageName}@${version}`;
+    const result = await processPackageIfNeeded(packageIdentifier);
+    if (!result.success) console.log(`problematic: ${packageIdentifier}`);
+    else console.log(`ok: ${packageIdentifier}`);
   }
 }
 
@@ -296,8 +297,7 @@ async function main() {
   if (process.argv.includes('--check-all-deps')) {
     await checkAllDepsForPackage(packageIdentifier);
   } else {
-    const packageDetails = npmView(packageIdentifier);
-    const result = await processPackageIfNeeded(packageDetails);
+    const result = await processPackageIfNeeded(packageIdentifier);
     console.log(result);
   }
 }
