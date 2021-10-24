@@ -100,6 +100,8 @@ async function processPackage(packageDetails) {
     const url = packageDetails.repository.url.replace(/^git\+/, '');
     // TODO: wrap all commands in function that only prints output if the command fails.
     execFileSync('git', ['clone', url, repoDir], { stdio: 'ignore' });
+  } else {
+    execFileSync('git', ['fetch', 'origin'], { cwd: repoDir, stdio: 'ignore' });
   }
   const pkgManager = fs.existsSync(`${repoDir}/yarn.lock`) ? 'yarn' : 'npm';
 
@@ -186,7 +188,6 @@ async function processPackage(packageDetails) {
 
   // Compare with package from npm.
   const githubArchive = `${repoDir}/${packageDetails.name}-${version}.tgz`;
-  const npmArchive = packageTarballPath;
 
   // Check shasum.
   const githubArchiveShasum = execFileSync('shasum', [githubArchive], { encoding: 'utf-8' }).split(' ')[0];
