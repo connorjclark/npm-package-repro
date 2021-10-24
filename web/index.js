@@ -14,6 +14,12 @@ async function renderForPackage(packageName) {
   successEl.textContent = `Success: ${result.success}`;
   el.append(successEl);
 
+  if (result.errors) {
+    const errorsEl = document.createElement('pre');
+    errorsEl.textContent += result.errors.join('\n---------\n');
+    el.append(errorsEl);
+  }
+
   const parsedDiffs = Diff2Html.parse(result.diffs.map(d => d.diff).join('\n'), {
     drawFileList: true,
     matching: 'lines',
