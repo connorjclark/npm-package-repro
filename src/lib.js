@@ -177,7 +177,7 @@ async function processPackage(packageDetails) {
 
   // Download archive.
   fs.mkdirSync('.tmp/packages', { recursive: true });
-  const packageTarballPath = `.tmp/packages/${packageDetails.name}-${version}.tgz`;
+  const packageTarballPath = `.tmp/packages/${packageDetails.name.replace('/', '_')}-${version}.tgz`;
   if (!fs.existsSync(packageTarballPath)) {
     await execFilePromise('curl', ['-o', packageTarballPath, packageDetails.dist.tarball]);
   }
@@ -236,9 +236,10 @@ async function processPackage(packageDetails) {
 
   // Create package from GitHub repo.
   await execFilePromise('npm', ['pack'], { cwd: repoDir });
+  // `npm pack` only saves to a fixed location.
+  const githubArchive = `${repoDir}/${packageDetails.name.replace('/', '-').replace('@', '')}-${version}.tgz`;
 
   // Compare with package from npm.
-  const githubArchive = `${repoDir}/${packageDetails.name}-${version}.tgz`;
 
   // Check shasum.
   const githubArchiveShasumOutput = await execFilePromise('shasum', [githubArchive], { encoding: 'utf-8' });
