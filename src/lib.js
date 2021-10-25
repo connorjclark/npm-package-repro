@@ -14,7 +14,6 @@ const execFilePromise = promisify(execFile);
  * @property {{type: string, url: string}} repository
  * @property {{integrity: string, shasum: string, tarball: string}} dist
  */
-
 function init() {
   fs.mkdirSync('.tmp/packages-from-source', { recursive: true });
   fs.mkdirSync('.tmp/packages', { recursive: true });
@@ -59,12 +58,13 @@ function readJson(file) {
 }
 
 /**
+ * Checks that the revision exists ... and fetches it.
  * @param {string} dir
  * @param {string} rev
  */
 async function gitRevisionExists(dir, rev) {
   try {
-    await execFilePromise('git', ['rev-parse', '-q', '--verify', `${rev}^{commit}`], { cwd: dir });
+    await execFilePromise('git', ['fetch', 'origin', rev], { cwd: dir });
     return true;
   } catch (err) {
     return false;
@@ -156,10 +156,7 @@ async function processPackage(packageDetails) {
   fs.mkdirSync(repoDir, { recursive: true });
   if (!fs.existsSync(`${repoDir}/.git`)) {
     const url = packageDetails.repository.url.replace(/^git\+/, '');
-    // TODO: wrap all commands in function that only prints output if the command fails.
-    await execFilePromise('git', ['clone', url, repoDir]);
-  } else {
-    await execFilePromise('git', ['fetch', 'origin'], { cwd: repoDir });
+    await execFilePromise('git', ['clone', '--depth=1', url, repoDir]);
   }
   const pkgManager = fs.existsSync(`${repoDir}/yarn.lock`) ? 'yarn' : 'npm';
 
@@ -358,7 +355,7 @@ async function getPackageDependencies(packageIdentifier) {
     throw new Error(output.stdout);
   }
   if (output.stderr) {
-    throw new Error(output.stderr);
+    throw new Error(output.stderr || 'Error fetching dependencies');
   }
 
   let packageIdentifiers = output.stdout.trim().split('\n').slice(1).map(line => {
