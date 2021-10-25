@@ -13,7 +13,7 @@ const dependenciesCache = new LRUMap(100);
 
 const app = express();
 
-app.use(express.static('.tmp/web'));
+app.use(express.static('dist/web'));
 
 app.get('/api/results/:packageIdentifier(*)', async (req, res) => {
   const packageIdentifier = await Lib.resolvePackageIdentifier(req.params.packageIdentifier);

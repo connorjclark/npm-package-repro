@@ -128,10 +128,10 @@ function renderPackageDependencies(packageIdentifier, dependencies, statuses) {
     if (diffEl) diffEl.remove();
 
     const result = await fetchPackageResults(packageIdentifier);
-    if (packageIdentifier !== selectedDep) return; // TODO: a cancel-able promise would be better.
-
     depSelectorEl.classList.remove('package-selector__dep--loading');
     depSelectorEl.classList.add('package-selector__dep--' + (result.success ? 'success' : 'fail'));
+    if (packageIdentifier !== selectedDep) return; // TODO: a cancel-able promise would be better.
+
     diffEl = renderPackageResult(result);
     el.append(diffEl);
   }
