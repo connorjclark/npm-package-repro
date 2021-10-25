@@ -318,7 +318,7 @@ function parsePackageIdentifier(packageIdentifier) {
 
 /**
  * @param {string} packageIdentifier
- * @return {Promise<Array<{name: string, version: string}>>}
+ * @return {Promise<string[]>}
  */
 async function getPackageDependencies(packageIdentifier) {
   if (!parsePackageIdentifier(packageIdentifier).version) {
@@ -338,15 +338,15 @@ async function getPackageDependencies(packageIdentifier) {
     throw new Error(output.stderr);
   }
 
-  const deps = output.stdout.trim().split('\n').slice(1).map(line => {
+  let packageIdentifiers = output.stdout.trim().split('\n').slice(1).map(line => {
     // TODO: use parsePackageIdentifier
     const [, scope, name, version] = line.match(/─ (@?)(.+)@(.+)/) || [];
-    return { name: scope + name, version };
-  }).sort((a, b) => a.name.localeCompare(b.name));
+    return `${scope}${name}@${version}`;
+  });
+  packageIdentifiers = [...new Set(packageIdentifiers)]
+    .sort((a, b) => a.localeCompare(b));
 
-  // TODO: just return packageIdentifiers. And dedupe.
-
-  return deps;
+  return packageIdentifiers;
 }
 
 export {

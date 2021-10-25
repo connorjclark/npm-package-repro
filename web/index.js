@@ -83,7 +83,7 @@ async function renderForPackageDependencies(packageIdentifier) {
   for (const dep of dependenciesResponse.dependencies) {
     const el = document.createElement('div');
     el.classList.add('package-selector__dep');
-    el.textContent = `${dep.name}@${dep.version}`;
+    el.textContent = dep;
     packageSelectorEl.append(el);
   }
 
@@ -108,7 +108,7 @@ async function renderForPackageDependencies(packageIdentifier) {
   });
 
   const firstDep = dependenciesResponse.dependencies[0];
-  if (firstDep) renderPackage(`${firstDep.name}@${firstDep.version}`);
+  if (firstDep) renderPackage(firstDep);
 
   return el;
 }

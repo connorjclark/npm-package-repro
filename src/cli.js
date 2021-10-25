@@ -5,11 +5,10 @@ import * as Lib from './lib.js';
  */
 async function checkAllDepsForPackage(packageIdentifier) {
   const deps = await Lib.getPackageDependencies(packageIdentifier);
-  for (const { name, version } of deps) {
-    const packageIdentifier = `${name}@${version}`;
-    const result = await Lib.processPackageIfNeeded(packageIdentifier);
-    if (!result.success) console.log(`problematic: ${packageIdentifier}`);
-    else console.log(`ok: ${packageIdentifier}`);
+  for (const dep of deps) {
+    const result = await Lib.processPackageIfNeeded(dep);
+    if (!result.success) console.log(`problematic: ${dep}`);
+    else console.log(`ok: ${dep}`);
   }
 }
 

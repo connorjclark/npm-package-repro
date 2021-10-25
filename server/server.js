@@ -6,7 +6,7 @@ const { LRUMap } = lru_map;
 
 /** @type {Map<string, Promise<any>>} */
 const pendingJobs = new Map();
-/** @type {LRUMap<string, Array<{name: string, version: string}>} */
+/** @type {LRUMap<string, Array<string[]>} */
 const dependenciesCache = new LRUMap(100);
 
 const app = express();
