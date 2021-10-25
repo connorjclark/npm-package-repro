@@ -92,6 +92,7 @@ async function processPackageIfNeeded(packageIdentifier) {
     result = await processPackage(packageDetails);
   } catch (err) {
     result = {
+      packageIdentifier: `${packageDetails.name}@${packageDetails.version}`,
       name: packageDetails.name,
       version: packageDetails.version,
       success: false,
@@ -108,8 +109,11 @@ async function processPackageIfNeeded(packageIdentifier) {
  * @param {PackageDetails} packageDetails
  */
 async function processPackage(packageDetails) {
+  const packageIdentifier = `${packageDetails.name}@${packageDetails.version}`;
+
   if (!packageDetails.repository) {
     return {
+      packageIdentifier,
       name: packageDetails.name,
       version: packageDetails.version,
       success: false,
@@ -122,6 +126,7 @@ async function processPackage(packageDetails) {
 
   if (packageDetails.repository.type !== 'git') {
     return {
+      packageIdentifier,
       name: packageDetails.name,
       version: packageDetails.version,
       success: false,
@@ -167,6 +172,9 @@ async function processPackage(packageDetails) {
   } else {
     errors.push(`could not find any relevant commits, tried: ${possibleCommits.join(' ')}`);
     return {
+      packageIdentifier,
+      name: packageDetails.name,
+      version: packageDetails.version,
       success: false,
       diffs: [],
       errors,
@@ -247,9 +255,11 @@ async function processPackage(packageDetails) {
 
   if (githubArchiveShasum === packageDetails.dist.shasum) {
     return {
+      packageIdentifier,
       name: packageDetails.name,
       version: packageDetails.version,
       success: true,
+      diffs: [],
       errors,
     };
   }
@@ -301,6 +311,7 @@ async function processPackage(packageDetails) {
   }
 
   return {
+    packageIdentifier,
     name: packageDetails.name,
     version: packageDetails.version,
     success,
