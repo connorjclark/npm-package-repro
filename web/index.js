@@ -117,15 +117,19 @@ function renderPackageDependencies(packageIdentifier, dependencies) {
   let selectedDep;
 
   /**
+   * @param {HTMLElement} depSelectorEl
    * @param {string} packageIdentifier
    */
-  async function renderDep(packageIdentifier) {
+  async function renderDep(depSelectorEl, packageIdentifier) {
     selectedDep = packageIdentifier;
     if (diffEl) diffEl.remove();
+    depSelectorEl.classList.add('package-selector__dep--loading');
 
     const result = await fetchPackageResults(packageIdentifier);
     if (packageIdentifier !== selectedDep) return; // TODO: a cancel-able promise would be better.
 
+    depSelectorEl.classList.remove('package-selector__dep--loading');
+    depSelectorEl.classList.add('package-selector__dep--' + (result.success ? 'success' : 'fail'));
     diffEl = renderPackageResult(result);
     el.append(diffEl);
   }
@@ -135,9 +139,9 @@ function renderPackageDependencies(packageIdentifier, dependencies) {
     if (!(targetEl instanceof HTMLElement)) return;
     if (!targetEl.classList.contains('package-selector__dep')) return;
 
-    renderDep(targetEl.textContent);
+    renderDep(targetEl, targetEl.textContent);
   });
-  if (dependencies[0]) renderDep(dependencies[0]);
+  if (dependencies[0]) renderDep(packageSelectorEl.children[0], dependencies[0]);
 
   return el;
 }
