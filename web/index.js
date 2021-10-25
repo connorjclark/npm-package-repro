@@ -1,4 +1,5 @@
 import * as Diff2Html from 'diff2html';
+import { Diff2HtmlUI } from 'diff2html/lib-esm/ui/js/diff2html-ui.js';
 
 let setStatusTimeoutHandle;
 
@@ -154,11 +155,14 @@ async function renderForPackage(packageIdentifier) {
   }
 
   const diffEl = document.createElement('div');
-  diffEl.innerHTML = Diff2Html.html(parsedDiffs, {
+  const diff2htmlUi = new Diff2HtmlUI(diffEl, parsedDiffs, {
     drawFileList: true,
+    fileListToggle: false,
     matching: 'lines',
     outputFormat: 'line-by-line',
   });
+  diff2htmlUi.draw();
+  diff2htmlUi.highlightCode();
   for (const movedTagEl of diffEl.querySelectorAll('.d2h-moved-tag')) {
     movedTagEl.remove();
   }
