@@ -6,6 +6,8 @@ const { LRUMap } = lru_map;
 
 /** @type {Map<string, Promise<any>>} */
 const pendingJobs = new Map();
+/** @type {LRUMap<string, Array<any[]>} */
+const resultsCache = new LRUMap(1000);
 /** @type {LRUMap<string, Array<string[]>} */
 const dependenciesCache = new LRUMap(100);
 
@@ -13,21 +15,20 @@ const app = express();
 
 app.use(express.static('.tmp/web'));
 
-app.get('/', (req, res) => {
-  res.sendFile('index.html', { root: '.tmp/web' });
-});
-
 app.get('/api/results/:packageIdentifier(*)', async (req, res) => {
   const packageIdentifier = await Lib.resolvePackageIdentifier(req.params.packageIdentifier);
 
-  let result;
-  if (pendingJobs.has(packageIdentifier)) {
-    result = await pendingJobs.get(packageIdentifier);
-  } else {
-    const job = Lib.processPackageIfNeeded(packageIdentifier);
-    pendingJobs.set(packageIdentifier, job);
-    result = await job;
-    pendingJobs.delete(packageIdentifier);
+  let result = resultsCache.get(packageIdentifier);
+  if (!result) {
+    if (pendingJobs.has(packageIdentifier)) {
+      result = await pendingJobs.get(packageIdentifier);
+    } else {
+      const job = Lib.processPackageIfNeeded(packageIdentifier);
+      pendingJobs.set(packageIdentifier, job);
+      result = await job;
+      pendingJobs.delete(packageIdentifier);
+      resultsCache.set(packageIdentifier, result);
+    }
   }
 
   res.send(result);
@@ -42,9 +43,19 @@ app.get('/api/dependencies/:packageIdentifier(*)', async (req, res) => {
     dependenciesCache.set(packageIdentifier, deps);
   }
 
+  const statuses = {};
+  for (const dep of deps) {
+    const result = resultsCache.get(dep) || Lib.getPackageResultIfExists(dep);
+    if (result) {
+      statuses[dep] = result.success ? 'success' : 'fail';
+      resultsCache.set(dep, result);
+    }
+  }
+
   res.send({
     packageIdentifier,
     dependencies: deps,
+    statuses,
   });
 });
 

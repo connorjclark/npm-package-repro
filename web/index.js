@@ -80,7 +80,8 @@ async function render(packageIdentifier, mode) {
       renderContainerEl.append(el);
     } else if (mode === 'deps') {
       const dependenciesResponse = await fetchPackageDependencies(packageIdentifier);
-      const el = await renderPackageDependencies(dependenciesResponse.packageIdentifier, dependenciesResponse.dependencies);
+      const el = await renderPackageDependencies(
+        dependenciesResponse.packageIdentifier, dependenciesResponse.dependencies, dependenciesResponse.statuses);
       renderContainerEl.innerHTML = '';
       renderContainerEl.append(el);
     }
@@ -93,8 +94,9 @@ async function render(packageIdentifier, mode) {
 /**
  * @param {string} packageIdentifier
  * @param {string[]} dependencies
+ * @param {Record<string, string>} statuses
  */
-function renderPackageDependencies(packageIdentifier, dependencies) {
+function renderPackageDependencies(packageIdentifier, dependencies, statuses) {
   const el = document.createElement('div');
   el.classList.add('view--dependencies');
 
@@ -109,6 +111,7 @@ function renderPackageDependencies(packageIdentifier, dependencies) {
   for (const dep of dependencies) {
     const el = document.createElement('div');
     el.classList.add('package-selector__dep');
+    el.classList.add('package-selector__dep--' + (statuses[dep] || 'loading'));
     el.textContent = dep;
     packageSelectorEl.append(el);
   }
@@ -123,7 +126,6 @@ function renderPackageDependencies(packageIdentifier, dependencies) {
   async function renderDep(depSelectorEl, packageIdentifier) {
     selectedDep = packageIdentifier;
     if (diffEl) diffEl.remove();
-    depSelectorEl.classList.add('package-selector__dep--loading');
 
     const result = await fetchPackageResults(packageIdentifier);
     if (packageIdentifier !== selectedDep) return; // TODO: a cancel-able promise would be better.

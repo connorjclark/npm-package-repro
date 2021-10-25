@@ -74,7 +74,7 @@ async function gitRevisionExists(dir, rev) {
 /**
  * @param {string} packageIdentifier
  */
-async function processPackageIfNeeded(packageIdentifier) {
+function getPackageResultIfExists(packageIdentifier) {
   if (!parsePackageIdentifier(packageIdentifier).version) {
     throw new Error(`expected version in packageIdentifier: ${packageIdentifier}`);
   }
@@ -83,6 +83,16 @@ async function processPackageIfNeeded(packageIdentifier) {
   if (fs.existsSync(resultPath)) {
     return JSON.parse(fs.readFileSync(resultPath, 'utf-8'));
   }
+
+  return null;
+}
+
+/**
+ * @param {string} packageIdentifier
+ */
+async function processPackageIfNeeded(packageIdentifier) {
+  const cachedResult = getPackageResultIfExists(packageIdentifier);
+  if (cachedResult) return cachedResult;
 
   const packageDetails = await getPackageDetails(packageIdentifier);
   console.log(`processing: ${packageDetails.name}@${packageDetails.version}`);
@@ -101,6 +111,7 @@ async function processPackageIfNeeded(packageIdentifier) {
     };
   }
 
+  const resultPath = `.tmp/results/${packageIdentifier.replace('/', '_')}.json`;
   fs.writeFileSync(resultPath, JSON.stringify(result, null, 2));
   return result;
 }
@@ -365,5 +376,6 @@ export {
   init,
   resolvePackageIdentifier,
   processPackageIfNeeded,
+  getPackageResultIfExists,
   getPackageDependencies,
 };
