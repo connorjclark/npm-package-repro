@@ -18,3 +18,13 @@ To use the CLI:
 yarn
 node src/cli.js <package>
 ```
+
+______
+
+Notes:
+
+```sh
+docker build -t npm-package-repro-cli .
+docker run --name npm-package-repro --network host -d -it -v $(pwd)/results:/node/app/results --entrypoint=/bin/sh npm-package-repro-cli
+docker exec npm-package-repro node src/cli.js lighthouse --check-all-deps
+```

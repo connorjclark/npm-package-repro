@@ -18,7 +18,7 @@ function init() {
   fs.mkdirSync('.tmp/packages-from-source', { recursive: true });
   fs.mkdirSync('.tmp/packages', { recursive: true });
   fs.mkdirSync('.tmp/repos', { recursive: true });
-  fs.mkdirSync('.tmp/results', { recursive: true });
+  fs.mkdirSync('results', { recursive: true });
 }
 
 /**
@@ -79,7 +79,7 @@ function getPackageResultIfExists(packageIdentifier) {
     throw new Error(`expected version in packageIdentifier: ${packageIdentifier}`);
   }
 
-  const resultPath = `.tmp/results/${packageIdentifier.replace('/', '_')}.json`;
+  const resultPath = `results/${packageIdentifier.replace('/', '_')}.json`;
   if (fs.existsSync(resultPath)) {
     return JSON.parse(fs.readFileSync(resultPath, 'utf-8'));
   }
@@ -111,7 +111,7 @@ async function processPackageIfNeeded(packageIdentifier) {
     };
   }
 
-  const resultPath = `.tmp/results/${packageIdentifier.replace('/', '_')}.json`;
+  const resultPath = `results/${packageIdentifier.replace('/', '_')}.json`;
   fs.writeFileSync(resultPath, JSON.stringify(result, null, 2));
   return result;
 }
@@ -144,6 +144,19 @@ async function processPackage(packageDetails) {
       diffs: [],
       errors: [
         '`packageDetails.repository.type` must be `git`',
+      ],
+    };
+  }
+
+  if (packageDetails.name.startsWith('@types/')) {
+    return {
+      packageIdentifier,
+      name: packageDetails.name,
+      version: packageDetails.version,
+      success: true,
+      diffs: [],
+      errors: [
+        'Skipping because repository is very large',
       ],
     };
   }
@@ -207,8 +220,8 @@ async function processPackage(packageDetails) {
   const packageDir = `${packageDir_}/package`;
 
   // It is only necessary to install dependencies when certain lifecycle scripts are present.
-  const lifestyleScriptPresent = ['prepare', 'prepack', 'prepublishOnly', 'prepublish'].some(name => packageDetails.scripts[name]);
-  if (lifestyleScriptPresent) {
+  const lifecycleScriptPresent = ['prepare', 'prepack', 'prepublishOnly', 'prepublish'].some(name => packageDetails.scripts[name]);
+  if (lifecycleScriptPresent) {
     if (pkgManager === 'npm') {
       await execFilePromise('npm', ['install'], { cwd: repoDir });
       if (packageDetails.scripts.prepublishOnly) {
@@ -230,10 +243,10 @@ async function processPackage(packageDetails) {
     }
   }
 
-  // Many packages don't use lifestyle scripts, so try our best to call the right build script.
+  // Many packages don't use lifecycle scripts, so try our best to call the right build script.
   const nonStandardPrepareScript = ['build', 'build-all'].find(name => packageDetails.scripts[name]);
-  if (!lifestyleScriptPresent && nonStandardPrepareScript) {
-    errors.push(`lifestyle scripts were not found, so guessing that this script should be run instead: ${nonStandardPrepareScript}`);
+  if (!lifecycleScriptPresent && nonStandardPrepareScript) {
+    errors.push(`lifecycle scripts were not found, so guessing that this script should be run instead: ${nonStandardPrepareScript}`);
 
     if (pkgManager === 'npm') {
       await execFilePromise('npm', ['install'], { cwd: repoDir });
