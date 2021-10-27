@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "diff2html": "^3.4.13",
-    "lru_map": "^0.4.1"
+    "lru_map": "^0.4.1",
+    "npm-remote-ls": "^1.3.2"
   }
 }

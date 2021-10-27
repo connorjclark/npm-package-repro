@@ -361,7 +361,7 @@ async function getPackageDependencies(packageIdentifier) {
   // --flatten would be nice but for some silly reason the output is truncated at ~100 items.
   const output = await execFilePromise('bash', [
     '-c',
-    `npx --yes npm-remote-ls ${packageIdentifier} -d false -o false`,
+    `node node_modules/.bin/npm-remote-ls ${packageIdentifier} -d false -o false`,
   ], { encoding: 'utf-8' })
     .catch(r => /** @type {{stdout: string, stderr: string}} */(r));
   if (!output.stdout.startsWith('└─')) {
